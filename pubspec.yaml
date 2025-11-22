@@ -1,0 +1,33 @@
+name: shrine
+description: Learn how to use Material for structure and layout.
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core
+  cupertino_icons: ^1.0.6
+  intl: ^0.20.2
+  shrine_images: ^2.0.2
+  provider: ^6.1.5+1
+
+  # Firebase (호환 버전)
+  firebase_core: ^3.15.2
+  firebase_auth: ^5.7.0
+  cloud_firestore: ^5.6.12
+  google_sign_in: ^6.1.0
+  firebase_ui_auth: ^2.0.0
+  firebase_storage: ^12.4.10
+  image_picker: 1.2.1
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
+
+flutter:
+  uses-material-design: true
