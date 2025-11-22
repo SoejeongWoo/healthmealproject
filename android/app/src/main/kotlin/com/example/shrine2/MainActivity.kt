@@ -1,4 +1,4 @@
-package com.example.shrine
+package com.example.shrine2
 
 import io.flutter.embedding.android.FlutterActivity
 

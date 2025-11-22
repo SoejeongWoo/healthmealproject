@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyB-FsjTcPXAD-VF7_56GhOE5KPMJ0yH5m8',
-    appId: '1:143435670432:android:ae1d65cf4cac377f8bfac5',
+    appId: '1:143435670432:android:22910e56ec81fee58bfac5',
     messagingSenderId: '143435670432',
     projectId: 'final-self-app-project',
     storageBucket: 'final-self-app-project.firebasestorage.app',
@@ -63,6 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '143435670432',
     projectId: 'final-self-app-project',
     storageBucket: 'final-self-app-project.firebasestorage.app',
+    androidClientId: '143435670432-dg8g832odvtnhdd3t6gsrujkgbevqcm2.apps.googleusercontent.com',
     iosClientId: '143435670432-uun20ht5r5kk8kpl6m55n4hh8jsbmsc7.apps.googleusercontent.com',
     iosBundleId: 'com.example.mdc100Series',
   );
@@ -73,6 +74,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '143435670432',
     projectId: 'final-self-app-project',
     storageBucket: 'final-self-app-project.firebasestorage.app',
+    androidClientId: '143435670432-dg8g832odvtnhdd3t6gsrujkgbevqcm2.apps.googleusercontent.com',
     iosClientId: '143435670432-uun20ht5r5kk8kpl6m55n4hh8jsbmsc7.apps.googleusercontent.com',
     iosBundleId: 'com.example.mdc100Series',
   );
