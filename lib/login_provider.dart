@@ -10,9 +10,9 @@ class LoginProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setGuest() {
-    loginType = "anonymous";
-    userName = "Guest";
+  void setEmailUser(String email) {
+    loginType = "email";
+    userName = email;
     notifyListeners();
   }
 

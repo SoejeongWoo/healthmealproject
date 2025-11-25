@@ -11,7 +11,6 @@ dependencies:
   # Core
   cupertino_icons: ^1.0.6
   intl: ^0.20.2
-  shrine_images: ^2.0.2
   provider: ^6.1.5
 
   # Firebase (호환 버전)
@@ -23,11 +22,37 @@ dependencies:
   firebase_storage: ^12.4.10
   image_picker: 1.2.1
 
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.2
 
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/my_splash_logo.png"
+
+flutter_native_splash:
+  android: true
+  ios: true
+
+  color: "#73FF77"
+  image: assets/splash.png
+
+  fullscreen: true
+  android_gravity: center
+
+  android_12:
+    image: assets/splash.png
+    color: "#73FF77"
+    icon_background_color: "#73FF77"
+
+
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/my_splash_logo.png

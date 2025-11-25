@@ -29,12 +29,10 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<UserProvider>();
-    final bool isAnonymous = widget.user.isAnonymous;
 
-    final profileImage = isAnonymous
-        ? "http://handong.edu/site/handong/res/img/logo.png"
-        : (widget.user.photoURL ??
-            "http://handong.edu/site/handong/res/img/logo.png");
+    // 🔥 게스트 제거 → 무조건 실제 계정 정보 사용
+    final profileImage =
+        widget.user.photoURL ?? "https://i.ibb.co/fY5w3YNR/mainprofile.png";
 
     return Scaffold(
       appBar: AppBar(
@@ -45,7 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => AuthHome()),
+                MaterialPageRoute(builder: (_) => const AuthHome()),
                 (route) => false,
               );
             },
@@ -69,29 +67,34 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 20),
+
+                    // 🔥 Name / Email 수정
                     Text("UID: ${provider.uid}",
                         style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 8),
                     Text(
-                      "Name: ${isAnonymous ? "Anonymous" : provider.name}",
+                      "Name: ${provider.name}",
                       style: const TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Email: ${isAnonymous ? "Anonymous" : provider.email}",
+                      "Email: ${provider.email}",
                       style: const TextStyle(fontSize: 16),
                     ),
+
                     const SizedBox(height: 30),
                     const Divider(),
                     const SizedBox(height: 20),
+
                     Text(
-                      "— ${isAnonymous ? "Guest" : provider.name} —",
+                      "— ${provider.name} —",
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
+
                     provider.isEditing
                         ? Column(
                             children: [
@@ -136,8 +139,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ],
                           ),
-                    const SizedBox(height: 40),
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),

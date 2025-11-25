@@ -15,6 +15,8 @@ import 'wishlist_page.dart';
 import 'user_provider.dart';
 import 'login_provider.dart';
 import 'DropDownProvider.dart';
+import 'signup_page.dart';
+import 'searchpage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,10 +50,17 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthHome extends StatelessWidget {
+class AuthHome extends StatefulWidget {
   const AuthHome({super.key});
 
-  // 기본 메시지
+  @override
+  State<AuthHome> createState() => _AuthHomeState();
+}
+
+class _AuthHomeState extends State<AuthHome> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   static const String defaultMsg =
       "I promise to take the test honestly before God.";
 
@@ -62,14 +71,14 @@ class AuthHome extends StatelessWidget {
 
     if (!snapshot.exists) {
       await userDoc.set({
-        "name": u.displayName ?? (u.isAnonymous ? "Guest" : ""),
+        "name": u.displayName ?? "",
         "email": u.email ?? "",
         "uid": u.uid,
         "status_message": defaultMsg,
       });
     } else {
       await userDoc.set({
-        "name": u.displayName ?? (u.isAnonymous ? "Guest" : ""),
+        "name": u.displayName ?? "",
         "email": u.email ?? "",
         "uid": u.uid,
       }, SetOptions(merge: true));
@@ -84,79 +93,70 @@ class AuthHome extends StatelessWidget {
         final user = snapshot.data;
         final loginProvider = context.watch<LoginProvider>();
 
-        String title = "Welcome to the app";
-
+        // 1️⃣ 아직 로그인 안 됐을 때 → 로그인 화면
         if (user == null) {
-          title = "Welcome to the app";
-        } else {
-          if (loginProvider.loginType == "google") {
-            title = "Welcome ${loginProvider.userName}!";
-          } else if (loginProvider.loginType == "anonymous") {
-            title = "Welcome Guest!";
-          }
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(title),
-            leading: user != null
-                ? IconButton(
-                    icon: const Icon(Icons.person),
-                    onPressed: () async {
-                      final provider = context.read<UserProvider>();
-
-                      provider.uid = user.uid;
-                      await provider.loadUser(user.uid);
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProfilePage(user: user),
-                        ),
-                      );
-                    },
-                  )
-                : null,
-            actions: user != null
-                ? [
-                    IconButton(
-                      icon: const Icon(Icons.shopping_cart),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const WishlistPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ProductAddPage(),
-                          ),
-                        );
-                      },
-                    ),
-                  ]
-                : null,
-          ),
-          body: Center(
-            child: user == null
-                ? Column(
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text("Welcome to the app"),
+            ),
+            body: SafeArea(
+              child: SingleChildScrollView(
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // GOOGLE LOGIN
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: 260,
+                        child: TextField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: 260,
+                        child: TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration:
+                              const InputDecoration(labelText: 'Password'),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () async {
+                          await GoogleSignIn().signOut();
+                          try {
+                            await FirebaseAuth.instance
+                                .signInWithEmailAndPassword(
+                              email: _emailController.text.trim(),
+                              password: _passwordController.text.trim(),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Login failed: $e")),
+                            );
+                          }
+                        },
+                        child: const Text("Login"),
+                      ),
+                      const SizedBox(height: 10),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.g_mobiledata),
+                        label: const Text(
+                          "Sign in with Google",
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () async {
+                          await GoogleSignIn().signOut();
+
                           final googleUser = await GoogleSignIn().signIn();
                           if (googleUser == null) return;
 
                           final googleAuth = await googleUser.authentication;
-
                           final credential = GoogleAuthProvider.credential(
                             accessToken: googleAuth.accessToken,
                             idToken: googleAuth.idToken,
@@ -170,30 +170,109 @@ class AuthHome extends StatelessWidget {
                             context
                                 .read<LoginProvider>()
                                 .setGoogleUser(u.displayName ?? "");
-
                             await _createUserDocIfNeeded(u);
                           }
                         },
-                        child: const Text('Sign in with Google'),
                       ),
-
-                      // GUEST LOGIN
-                      ElevatedButton(
-                        onPressed: () async {
-                          await FirebaseAuth.instance.signInAnonymously();
-                          final u = FirebaseAuth.instance.currentUser;
-
-                          if (u != null) {
-                            context.read<LoginProvider>().setGuest();
-                            await _createUserDocIfNeeded(u);
-                          }
-                        },
-                        child: const Text('Sign in as Guest'),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text("Don't have an account? "),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const SignUpPage()),
+                              );
+                            },
+                            child: const Text(
+                              "Sign up",
+                              style: TextStyle(
+                                color: Colors.blue,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  )
-                : ProductsList(user: user),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // 2️⃣ 로그인 된 상태 → 상품 리스트 화면
+        final title = loginProvider.userName.isNotEmpty
+            ? "Welcome ${loginProvider.userName}!"
+            : "Welcome ${user.email ?? ''}!";
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(title),
           ),
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.home),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AuthHome()),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SearchPage()),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProductAddPage()),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.favorite),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WishlistPage()),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  onPressed: () async {
+                    final provider = context.read<UserProvider>();
+                    provider.uid = user.uid;
+                    await provider.loadUser(user.uid);
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => ProfilePage(user: user)),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          body: ProductsList(user: user),
         );
       },
     );
@@ -358,22 +437,6 @@ class ProductsList extends StatelessWidget {
                 },
               );
             },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: ElevatedButton(
-            onPressed: () async {
-              context.read<LoginProvider>().reset();
-
-              await FirebaseAuth.instance.signOut();
-
-              if (!context.mounted) return;
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const AuthHome()),
-              );
-            },
-            child: const Text('Sign Out'),
           ),
         ),
       ],
