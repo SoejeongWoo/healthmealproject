@@ -31,10 +31,7 @@ class ProductDetailPage extends StatelessWidget {
               Navigator.of(context).popUntil((route) => route.isFirst);
             }
           });
-
-          return const Scaffold(
-            body: SizedBox.shrink(),
-          );
+          return const Scaffold(body: SizedBox.shrink());
         }
 
         final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -42,11 +39,9 @@ class ProductDetailPage extends StatelessWidget {
         final imageUrl = data['imageUrl'] ?? '';
         final description = data['description'] ?? '';
         final uid = data['uid'] ?? '';
+
         final createdAt = data['createdAt'];
         final updatedAt = data['updatedAt'];
-
-        final likes = data['likes'] ?? 0;
-        final likedUsers = List<String>.from(data['likedUsers'] ?? []);
 
         final mainIngredients =
             List<String>.from(data['mainIngredients'] ?? []);
@@ -57,30 +52,8 @@ class ProductDetailPage extends StatelessWidget {
         final myUid = FirebaseAuth.instance.currentUser!.uid;
         final isOwner = myUid == uid;
 
-        Future<void> likeProduct() async {
-          final ref =
-              FirebaseFirestore.instance.collection('products').doc(docId);
-
-          if (likedUsers.contains(myUid)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("You can only do it once!!")),
-            );
-            return;
-          }
-
-          await ref.update({
-            'likes': likes + 1,
-            'likedUsers': FieldValue.arrayUnion([myUid]),
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("I like it")),
-          );
-        }
-
         Widget ingredientSection(String title, List<String> list) {
           if (list.isEmpty) return const SizedBox.shrink();
-
           return Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -94,8 +67,6 @@ class ProductDetailPage extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
-                // 나머지 공간 전체에서 Chip들이 줄바꿈 되면서 표시됨
                 Expanded(
                   child: Wrap(
                     spacing: 8,
@@ -144,43 +115,16 @@ class ProductDetailPage extends StatelessWidget {
                     final ref = FirebaseStorage.instance
                         .ref()
                         .child('products/$docId.jpg');
+
                     try {
                       await ref.delete();
-                    } catch (_) {
-                      // 이미지가 없을 수도 있으니 무시
-                    }
+                    } catch (_) {}
 
                     Navigator.pop(context);
                   },
                 ),
             ],
           ),
-          floatingActionButton:
-              Consumer<WishlistProvider>(builder: (context, wishlist, child) {
-            final isInWishlist = wishlist.isInWishlist(docId);
-
-            return FloatingActionButton(
-              backgroundColor: isInWishlist ? Colors.green : Colors.blue,
-              child: Icon(
-                isInWishlist ? Icons.check : Icons.favorite,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                wishlist.toggleWishlist(docId);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isInWishlist
-                          ? "Removed from favorites"
-                          : "Added to favorites",
-                    ),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-              },
-            );
-          }),
           body: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,6 +136,8 @@ class ProductDetailPage extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
                 const SizedBox(height: 16),
+
+                // ❤️ 메뉴 이름 + 좋아요 + 하트
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -205,26 +151,62 @@ class ProductDetailPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.thumb_up,
-                          color: likedUsers.contains(myUid)
-                              ? Colors.blue
-                              : Colors.grey,
-                        ),
-                        onPressed: likeProduct,
+
+                      // ❤️ 하트
+                      Consumer<WishlistProvider>(
+                        builder: (context, wishlistProvider, child) {
+                          final isInWishlist =
+                              wishlistProvider.isInWishlist(docId);
+
+                          return IconButton(
+                            icon: Icon(
+                              isInWishlist
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isInWishlist ? Colors.red : Colors.grey,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              wishlistProvider.toggleWishlist(docId);
+                            },
+                          );
+                        },
                       ),
-                      Text("$likes"),
+
+                      // ⭐ 좋아요 숫자 (StreamBuilder → 즉시 반영)
+                      StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('products')
+                            .doc(docId)
+                            .snapshots(),
+                        builder: (context, snap) {
+                          if (!snap.hasData) {
+                            return const Text(
+                              "0",
+                              style: TextStyle(fontSize: 16),
+                            );
+                          }
+                          final currentLikes = snap.data!['likes'] ?? 0;
+
+                          return Text(
+                            "$currentLikes",
+                            style: const TextStyle(fontSize: 16),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
+
                 ingredientSection("메인 재료", mainIngredients),
                 ingredientSection("서브 재료", subIngredients),
                 ingredientSection("기타 재료", otherIngredients),
+
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(description),
                 ),
+
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.all(16),

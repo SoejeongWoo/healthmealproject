@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'wishlist_provider.dart';
+import 'product_detail_page.dart';
 
 class WishlistPage extends StatelessWidget {
   const WishlistPage({super.key});
@@ -12,15 +13,15 @@ class WishlistPage extends StatelessWidget {
 
     if (wishlist.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Wishlist")),
+        appBar: AppBar(title: const Text("Favorite Recipes")),
         body: const Center(
-          child: Text("Your wishlist is empty."),
+          child: Text("Your favorite recipe is empty."),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Wishlist")),
+      appBar: AppBar(title: const Text("Favorite Recipes")),
       body: ListView.builder(
         itemCount: wishlist.length,
         itemBuilder: (context, index) {
@@ -54,7 +55,17 @@ class WishlistPage extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
                 title: Text(data['name']),
-                subtitle: Text("₩${data['price']}"),
+
+                // 아이템 클릭하면 디테일 페이지 이동
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailPage(docId: docId),
+                    ),
+                  );
+                },
+
                 trailing: IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () {

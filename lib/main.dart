@@ -75,6 +75,7 @@ class _AuthHomeState extends State<AuthHome> {
         "email": u.email ?? "",
         "uid": u.uid,
         "status_message": defaultMsg,
+        "wishlist": [],
       });
     } else {
       await userDoc.set({
@@ -82,6 +83,10 @@ class _AuthHomeState extends State<AuthHome> {
         "email": u.email ?? "",
         "uid": u.uid,
       }, SetOptions(merge: true));
+
+      if ((snapshot.data()?['wishlist']) == null) {
+        await userDoc.set({"wishlist": []}, SetOptions(merge: true));
+      }
     }
   }
 
@@ -148,6 +153,8 @@ class _AuthHomeState extends State<AuthHome> {
                               email: _emailController.text.trim(),
                               password: _passwordController.text.trim(),
                             );
+                            final uid = FirebaseAuth.instance.currentUser!.uid;
+                            context.read<WishlistProvider>().setUser(uid);
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text("Login failed: $e")),
@@ -184,6 +191,7 @@ class _AuthHomeState extends State<AuthHome> {
                                 .read<LoginProvider>()
                                 .setGoogleUser(u.displayName ?? "");
                             await _createUserDocIfNeeded(u);
+                            context.read<WishlistProvider>().setUser(u.uid);
                           }
                         },
                       ),
@@ -222,6 +230,9 @@ class _AuthHomeState extends State<AuthHome> {
         // final title = loginProvider.userName.isNotEmpty
         //     ? "Welcome ${loginProvider.userName}!"
         //     : "Welcome ${loginProvider.userName}!";
+
+        final wishlistProvider = context.read<WishlistProvider>();
+        wishlistProvider.setUser(user.uid);
 
         return Scaffold(
           appBar: AppBar(
@@ -454,14 +465,10 @@ class ProductsList extends StatelessWidget {
                           right: 8,
                           child: Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
                             child: const Icon(
-                              Icons.check_circle,
+                              Icons.favorite,
                               size: 24,
-                              color: Colors.green,
+                              color: Colors.red,
                             ),
                           ),
                         ),
