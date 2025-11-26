@@ -97,7 +97,20 @@ class _AuthHomeState extends State<AuthHome> {
         if (user == null) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text("Welcome to the app"),
+              title: const Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: "오늘의 ",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    TextSpan(
+                      text: "식단",
+                      style: TextStyle(color: Colors.green),
+                    ),
+                  ],
+                ),
+              ),
             ),
             body: SafeArea(
               child: SingleChildScrollView(
@@ -206,13 +219,35 @@ class _AuthHomeState extends State<AuthHome> {
         }
 
         // 2️⃣ 로그인 된 상태 → 상품 리스트 화면
-        final title = loginProvider.userName.isNotEmpty
-            ? "Welcome ${loginProvider.userName}!"
-            : "Welcome ${user.email ?? ''}!";
+        // final title = loginProvider.userName.isNotEmpty
+        //     ? "Welcome ${loginProvider.userName}!"
+        //     : "Welcome ${loginProvider.userName}!";
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(title),
+            centerTitle: true,
+            title: const Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: "오늘의 ",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: "식단",
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           bottomNavigationBar: BottomAppBar(
             shape: const CircularNotchedRectangle(),
@@ -298,12 +333,12 @@ class ProductsList extends StatelessWidget {
                 value: dropdown.sortOption,
                 items: const [
                   DropdownMenuItem(
-                    value: "asc",
-                    child: Text("ASC"),
+                    value: "recent",
+                    child: Text("최신순"),
                   ),
                   DropdownMenuItem(
-                    value: "desc",
-                    child: Text("DESC"),
+                    value: "likes",
+                    child: Text("좋아요순"),
                   ),
                 ],
                 onChanged: (value) {
@@ -320,8 +355,8 @@ class ProductsList extends StatelessWidget {
             stream: FirebaseFirestore.instance
                 .collection('products')
                 .orderBy(
-                  "price",
-                  descending: dropdown.sortOption == "desc",
+                  dropdown.sortOption == "recent" ? "createdAt" : "likes",
+                  descending: true,
                 )
                 .snapshots(),
             builder: (context, snapshot) {
@@ -356,7 +391,6 @@ class ProductsList extends StatelessWidget {
                   final isInWishlist = wishlist.isInWishlist(docId);
 
                   final name = data['name'] ?? "No name";
-                  final price = data['price'] ?? 0;
 
                   return Stack(
                     children: [
@@ -393,7 +427,6 @@ class ProductsList extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  Text("₩$price"),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton(

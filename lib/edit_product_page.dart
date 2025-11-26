@@ -7,17 +7,21 @@ import 'package:image_picker/image_picker.dart';
 class EditProductPage extends StatefulWidget {
   final String docId;
   final String currentName;
-  final int currentPrice;
   final String currentDescription;
   final String currentImageUrl;
+  final List<String> mainIngredients;
+  final List<String> subIngredients;
+  final List<String> otherIngredients;
 
   const EditProductPage({
     super.key,
     required this.docId,
     required this.currentName,
-    required this.currentPrice,
     required this.currentDescription,
     required this.currentImageUrl,
+    required this.mainIngredients,
+    required this.subIngredients,
+    required this.otherIngredients,
   });
 
   @override
@@ -26,17 +30,23 @@ class EditProductPage extends StatefulWidget {
 
 class _EditProductPageState extends State<EditProductPage> {
   late TextEditingController _nameController;
-  late TextEditingController _priceController;
   late TextEditingController _descController;
+
+  late List<String> mainIngredients;
+  late List<String> subIngredients;
+  late List<String> otherIngredients;
+
   File? _newImage;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.currentName);
-    _priceController =
-        TextEditingController(text: widget.currentPrice.toString());
     _descController = TextEditingController(text: widget.currentDescription);
+
+    mainIngredients = List.from(widget.mainIngredients);
+    subIngredients = List.from(widget.subIngredients);
+    otherIngredients = List.from(widget.otherIngredients);
   }
 
   Future<void> _pickImage() async {
@@ -44,6 +54,36 @@ class _EditProductPageState extends State<EditProductPage> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() => _newImage = File(pickedFile.path));
+    }
+  }
+
+  Future<void> _addIngredient(List<String> list) async {
+    String? result = await showDialog(
+      context: context,
+      builder: (_) {
+        final TextEditingController c = TextEditingController();
+        return AlertDialog(
+          title: const Text("재료 추가"),
+          content: TextField(
+            controller: c,
+            decoration: const InputDecoration(labelText: "재료명"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("취소"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, c.text),
+              child: const Text("추가"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result.trim().isNotEmpty) {
+      setState(() => list.add(result.trim()));
     }
   }
 
@@ -61,20 +101,70 @@ class _EditProductPageState extends State<EditProductPage> {
         .collection('products')
         .doc(widget.docId)
         .update({
-      'name': _nameController.text,
-      'price': int.tryParse(_priceController.text) ?? 0,
-      'description': _descController.text,
+      'name': _nameController.text.trim(),
+      'description': _descController.text.trim(),
       'imageUrl': imageUrl,
+      'mainIngredients': mainIngredients,
+      'subIngredients': subIngredients,
+      'otherIngredients': otherIngredients,
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
     Navigator.pop(context);
   }
 
+  Widget ingredientSection(
+      String title, List<String> list, VoidCallback addFn) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            IconButton(onPressed: addFn, icon: const Icon(Icons.add)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ReorderableListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              if (newIndex > oldIndex) newIndex -= 1;
+              final item = list.removeAt(oldIndex);
+              list.insert(newIndex, item);
+            });
+          },
+          children: [
+            for (int i = 0; i < list.length; i++)
+              ListTile(
+                key: ValueKey("$title-$i-${list[i]}"),
+                leading: const Icon(Icons.drag_handle),
+                title: Text(list[i]),
+                trailing: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      list.removeAt(i);
+                    });
+                  },
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Edit Product")),
+      appBar: AppBar(title: const Text("메뉴 수정")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -89,22 +179,24 @@ class _EditProductPageState extends State<EditProductPage> {
               const SizedBox(height: 16),
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: "Name"),
-              ),
-              TextField(
-                controller: _priceController,
-                decoration: const InputDecoration(labelText: "Price"),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: _descController,
-                decoration: const InputDecoration(labelText: "Description"),
-                maxLines: 3,
+                decoration: const InputDecoration(labelText: "메뉴 이름"),
               ),
               const SizedBox(height: 16),
+              ingredientSection("메인 재료", mainIngredients,
+                  () => _addIngredient(mainIngredients)),
+              ingredientSection("서브 재료", subIngredients,
+                  () => _addIngredient(subIngredients)),
+              ingredientSection("기타 재료", otherIngredients,
+                  () => _addIngredient(otherIngredients)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _descController,
+                decoration: const InputDecoration(labelText: "설명"),
+                maxLines: 3,
+              ),
               ElevatedButton(
-                child: const Text("Save"),
                 onPressed: _updateProduct,
+                child: const Text("저장"),
               ),
             ],
           ),

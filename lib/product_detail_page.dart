@@ -39,7 +39,6 @@ class ProductDetailPage extends StatelessWidget {
 
         final data = snapshot.data!.data() as Map<String, dynamic>;
         final name = data['name'] ?? '';
-        final price = data['price'] ?? 0;
         final imageUrl = data['imageUrl'] ?? '';
         final description = data['description'] ?? '';
         final uid = data['uid'] ?? '';
@@ -48,6 +47,12 @@ class ProductDetailPage extends StatelessWidget {
 
         final likes = data['likes'] ?? 0;
         final likedUsers = List<String>.from(data['likedUsers'] ?? []);
+
+        final mainIngredients =
+            List<String>.from(data['mainIngredients'] ?? []);
+        final subIngredients = List<String>.from(data['subIngredients'] ?? []);
+        final otherIngredients =
+            List<String>.from(data['otherIngredients'] ?? []);
 
         final myUid = FirebaseAuth.instance.currentUser!.uid;
         final isOwner = myUid == uid;
@@ -73,9 +78,39 @@ class ProductDetailPage extends StatelessWidget {
           );
         }
 
+        Widget ingredientSection(String title, List<String> list) {
+          if (list.isEmpty) return const SizedBox.shrink();
+
+          return Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "$title: ",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                // 나머지 공간 전체에서 Chip들이 줄바꿈 되면서 표시됨
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: list.map((i) => Chip(label: Text(i))).toList(),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(
-            title: const Text("Product Detail"),
+            title: const Text("Healthy Recipe Detail"),
             actions: [
               if (isOwner)
                 IconButton(
@@ -87,9 +122,11 @@ class ProductDetailPage extends StatelessWidget {
                         builder: (_) => EditProductPage(
                           docId: docId,
                           currentName: name,
-                          currentPrice: price,
                           currentDescription: description,
                           currentImageUrl: imageUrl,
+                          mainIngredients: mainIngredients,
+                          subIngredients: subIngredients,
+                          otherIngredients: otherIngredients,
                         ),
                       ),
                     );
@@ -107,7 +144,11 @@ class ProductDetailPage extends StatelessWidget {
                     final ref = FirebaseStorage.instance
                         .ref()
                         .child('products/$docId.jpg');
-                    await ref.delete();
+                    try {
+                      await ref.delete();
+                    } catch (_) {
+                      // 이미지가 없을 수도 있으니 무시
+                    }
 
                     Navigator.pop(context);
                   },
@@ -121,7 +162,7 @@ class ProductDetailPage extends StatelessWidget {
             return FloatingActionButton(
               backgroundColor: isInWishlist ? Colors.green : Colors.blue,
               child: Icon(
-                isInWishlist ? Icons.check : Icons.shopping_cart,
+                isInWishlist ? Icons.check : Icons.favorite,
                 color: Colors.white,
               ),
               onPressed: () {
@@ -131,8 +172,8 @@ class ProductDetailPage extends StatelessWidget {
                   SnackBar(
                     content: Text(
                       isInWishlist
-                          ? "Removed from wishlist"
-                          : "Added to wishlist",
+                          ? "Removed from favorites"
+                          : "Added to favorites",
                     ),
                     duration: const Duration(seconds: 1),
                   ),
@@ -177,16 +218,9 @@ class ProductDetailPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    "₩$price",
-                    style: const TextStyle(
-                      fontSize: 22,
-                      color: Colors.green,
-                    ),
-                  ),
-                ),
+                ingredientSection("메인 재료", mainIngredients),
+                ingredientSection("서브 재료", subIngredients),
+                ingredientSection("기타 재료", otherIngredients),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(description),
