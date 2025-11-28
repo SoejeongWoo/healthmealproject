@@ -8,8 +8,7 @@ class UserProvider extends ChangeNotifier {
   String statusMessage = "";
   bool isEditing = false;
 
-  static const String defaultMessage =
-      "I promise to take the test honestly before God.";
+  static const String defaultMessage = "맛있고 건강한 음식을 공유해봐요~";
 
   Future<void> loadUser(String userId) async {
     uid = userId;
@@ -20,7 +19,6 @@ class UserProvider extends ChangeNotifier {
     if (doc.exists) {
       final data = doc.data()!;
 
-      // 🔥 anonymous 제거 → 항상 실제 이메일/이름 사용
       name = data['name'] ?? "";
       email = data['email'] ?? "";
       uid = data['uid'] ?? userId;
@@ -53,10 +51,24 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveStatus() async {
-    await FirebaseFirestore.instance.collection('user').doc(uid).update({
-      'status_message': statusMessage,
-    });
+  void updateName(String newName) {
+    name = newName;
+    notifyListeners();
+  }
+
+  Future<void> saveAll() async {
+    if (uid.isEmpty) return;
+
+    await FirebaseFirestore.instance.collection('user').doc(uid).set(
+      {
+        "name": name,
+        "email": email,
+        "status_message": statusMessage,
+        "uid": uid,
+      },
+      SetOptions(merge: true),
+    );
+
     isEditing = false;
     notifyListeners();
   }

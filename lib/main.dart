@@ -61,8 +61,7 @@ class _AuthHomeState extends State<AuthHome> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  static const String defaultMsg =
-      "I promise to take the test honestly before God.";
+  static const String defaultMsg = "맛있고 건강한 음식을 공유해봐요~";
 
   Future<void> _createUserDocIfNeeded(User u) async {
     final userDoc = FirebaseFirestore.instance.collection('user').doc(u.uid);
@@ -77,16 +76,6 @@ class _AuthHomeState extends State<AuthHome> {
         "status_message": defaultMsg,
         "wishlist": [],
       });
-    } else {
-      await userDoc.set({
-        "name": u.displayName ?? "",
-        "email": u.email ?? "",
-        "uid": u.uid,
-      }, SetOptions(merge: true));
-
-      if ((snapshot.data()?['wishlist']) == null) {
-        await userDoc.set({"wishlist": []}, SetOptions(merge: true));
-      }
     }
   }
 
@@ -98,7 +87,6 @@ class _AuthHomeState extends State<AuthHome> {
         final user = snapshot.data;
         final loginProvider = context.watch<LoginProvider>();
 
-        // 1️⃣ 아직 로그인 안 됐을 때 → 로그인 화면
         if (user == null) {
           return Scaffold(
             appBar: AppBar(
@@ -226,7 +214,7 @@ class _AuthHomeState extends State<AuthHome> {
           );
         }
 
-        // 2️⃣ 로그인 된 상태 → 상품 리스트 화면
+        // 로그인 된 상태 → 상품 리스트 화면
         // final title = loginProvider.userName.isNotEmpty
         //     ? "Welcome ${loginProvider.userName}!"
         //     : "Welcome ${loginProvider.userName}!";
@@ -329,6 +317,19 @@ class ProductsList extends StatelessWidget {
   final User user;
   const ProductsList({super.key, required this.user});
 
+  String _formatCookingTime(int totalMinutes) {
+    if (totalMinutes <= 0) return "";
+
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+
+    String time = "";
+    if (hours > 0) time += "${hours}시간 ";
+    if (minutes > 0) time += "${minutes}분";
+
+    return "⏱ 조리시간: $time".trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final dropdown = context.watch<DropDownProvider>();
@@ -351,6 +352,18 @@ class ProductsList extends StatelessWidget {
                     value: "likes",
                     child: Text("좋아요순"),
                   ),
+                  DropdownMenuItem(
+                    value: "timeAsc",
+                    child: Text("조리시간 짧은순"),
+                  ),
+                  DropdownMenuItem(
+                    value: "timeDesc",
+                    child: Text("조리시간 긴순"),
+                  ),
+                  DropdownMenuItem(
+                    value: "dessert",
+                    child: Text("디저트"),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -366,8 +379,14 @@ class ProductsList extends StatelessWidget {
             stream: FirebaseFirestore.instance
                 .collection('products')
                 .orderBy(
-                  dropdown.sortOption == "recent" ? "createdAt" : "likes",
-                  descending: true,
+                  dropdown.sortOption == "recent"
+                      ? "createdAt"
+                      : dropdown.sortOption == "likes"
+                          ? "likes"
+                          : "cookingTime",
+                  descending: dropdown.sortOption == "recent" ||
+                      dropdown.sortOption == "likes" ||
+                      dropdown.sortOption == "timeDesc",
                 )
                 .snapshots(),
             builder: (context, snapshot) {
@@ -377,6 +396,22 @@ class ProductsList extends StatelessWidget {
 
               final products = snapshot.data!.docs;
 
+              List<QueryDocumentSnapshot> filteredProducts = products;
+
+              if (dropdown.sortOption == "dessert") {
+                filteredProducts = products.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final dynamic rawOptions = data['foodOptions'];
+
+                  // foodOptions: ["디저트", "고단백", ...]
+                  final List<String> foodOptions = rawOptions is Iterable
+                      ? rawOptions.map((e) => e.toString()).toList()
+                      : <String>[];
+
+                  return foodOptions.contains("디저트");
+                }).toList();
+              }
+
               return GridView.builder(
                 padding: const EdgeInsets.all(8),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -385,9 +420,10 @@ class ProductsList extends StatelessWidget {
                   crossAxisSpacing: 8,
                   childAspectRatio: 0.7,
                 ),
-                itemCount: products.length,
+                itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
-                  final product = products[index];
+                  final product = filteredProducts[index];
+
                   final data = product.data() as Map<String, dynamic>;
                   final docId = product.id;
 
@@ -402,77 +438,104 @@ class ProductsList extends StatelessWidget {
                   final isInWishlist = wishlist.isInWishlist(docId);
 
                   final name = data['name'] ?? "No name";
+                  final dynamic rawOptions = data['foodOptions'];
+                  final List<String> foodOptions = rawOptions is Iterable
+                      ? rawOptions.map((e) => e.toString()).toList()
+                      : <String>[];
 
-                  return Stack(
-                    children: [
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailPage(docId: docId),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(12),
-                                ),
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
+                      );
+                    },
+                    child: Stack(
+                      children: [
+                        Card(
+                          clipBehavior: Clip.antiAlias,
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(12),
+                                  ),
+                                  child: Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name,
-                                    style: const TextStyle(
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.bold),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: TextButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => ProductDetailPage(
-                                                docId: product.id),
-                                          ),
-                                        );
-                                      },
-                                      child: const Text('More'),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(
+                                      height: 40,
+                                      child: foodOptions.isNotEmpty
+                                          ? Wrap(
+                                              spacing: 4,
+                                              runSpacing: 4,
+                                              children: foodOptions.map((opt) {
+                                                return Text(
+                                                  "#$opt",
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.blueGrey,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            )
+                                          : const SizedBox(),
+                                    ),
+                                    if ((data['cookingTime'] ?? 0) > 0)
+                                      Text(
+                                        _formatCookingTime(data['cookingTime']),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF4CAF50),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isInWishlist)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            child: const Icon(
-                              Icons.favorite,
-                              size: 24,
-                              color: Colors.red,
-                            ),
+                            ],
                           ),
                         ),
-                    ],
+                        if (isInWishlist)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.favorite,
+                                size: 24,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   );
                 },
               );

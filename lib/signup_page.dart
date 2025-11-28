@@ -15,7 +15,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _password = TextEditingController();
   final TextEditingController _confirm = TextEditingController();
 
-  static const defaultMsg = "I promise to take the test honestly before God.";
+  static const defaultMsg = "맛있고 건강한 음식을 공유해봐요~";
 
   @override
   Widget build(BuildContext context) {

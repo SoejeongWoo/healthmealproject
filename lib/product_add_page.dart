@@ -16,9 +16,20 @@ class _ProductAddPageState extends State<ProductAddPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
+  final TextEditingController _hourController = TextEditingController();
+  final TextEditingController _minuteController = TextEditingController();
+
   final List<String> mainIngredients = [];
   final List<String> subIngredients = [];
   final List<String> otherIngredients = [];
+  final List<String> allFoodOptions = [
+    "디저트",
+    "가볍게 먹는 식사",
+    "든든한 식사",
+    "고단백",
+  ];
+
+  final List<String> selectedFoodOptions = [];
 
   File? _selectedImage;
   final String defaultImage =
@@ -73,6 +84,10 @@ class _ProductAddPageState extends State<ProductAddPage> {
       imageUrl = await ref.getDownloadURL();
     }
 
+    int hour = int.tryParse(_hourController.text) ?? 0;
+    int minute = int.tryParse(_minuteController.text) ?? 0;
+    int totalMinutes = hour * 60 + minute;
+
     await docRef.set({
       'name': _nameController.text.trim(),
       'description': _descController.text.trim(),
@@ -85,6 +100,8 @@ class _ProductAddPageState extends State<ProductAddPage> {
       'likedUsers': <String>[],
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'cookingTime': totalMinutes,
+      'foodOptions': selectedFoodOptions,
     });
 
     Navigator.pop(context);
@@ -138,9 +155,56 @@ class _ProductAddPageState extends State<ProductAddPage> {
                     : Image.network(defaultImage, height: 150),
               ),
               const SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: '메뉴 이름'),
+              ),
+              Card(
+                elevation: 0,
+                color: Colors.grey.shade100,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "조리 시간을 입력하시오",
+                        style: TextStyle(
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _hourController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: '시간',
+                                hintText: '예: 1',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextField(
+                              controller: _minuteController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: '분',
+                                hintText: '예: 30',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               ingredientSection("메인 재료", mainIngredients,
@@ -153,6 +217,42 @@ class _ProductAddPageState extends State<ProductAddPage> {
                 controller: _descController,
                 decoration: const InputDecoration(labelText: '설명'),
                 maxLines: 3,
+              ),
+              Card(
+                elevation: 0,
+                color: Colors.grey.shade100,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("음식 옵션 선택",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: allFoodOptions.map((opt) {
+                          final isSelected = selectedFoodOptions.contains(opt);
+                          return FilterChip(
+                            label: Text(opt),
+                            selected: isSelected,
+                            onSelected: (value) {
+                              setState(() {
+                                if (value) {
+                                  selectedFoodOptions.add(opt);
+                                } else {
+                                  selectedFoodOptions.remove(opt);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
               ElevatedButton(

@@ -15,7 +15,10 @@ class WishlistPage extends StatelessWidget {
       return Scaffold(
         appBar: AppBar(title: const Text("Favorite Recipes")),
         body: const Center(
-          child: Text("Your favorite recipe is empty."),
+          child: Text(
+            "Your favorite recipe is empty.",
+            style: TextStyle(fontSize: 16),
+          ),
         ),
       );
     }
@@ -23,6 +26,7 @@ class WishlistPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("Favorite Recipes")),
       body: ListView.builder(
+        padding: const EdgeInsets.all(12),
         itemCount: wishlist.length,
         itemBuilder: (context, index) {
           final docId = wishlist[index];
@@ -34,29 +38,28 @@ class WishlistPage extends StatelessWidget {
                 .get(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
-                return const ListTile(
-                  title: Text("Loading..."),
+                return const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: LinearProgressIndicator(),
                 );
               }
 
               if (!snapshot.data!.exists) {
-                return ListTile(
-                  title: Text("Item $docId not found"),
-                );
+                return const SizedBox.shrink();
               }
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
 
-              return ListTile(
-                leading: Image.network(
-                  data['imageUrl'],
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
-                ),
-                title: Text(data['name']),
+              final imageUrl = data['imageUrl'] ?? "";
+              final name = data['name'] ?? "";
+              final List<String> ingredients =
+                  List<String>.from(data['mainIngredients'] ?? []);
 
-                // 아이템 클릭하면 디테일 페이지 이동
+              final ingredientPreview = ingredients.isNotEmpty
+                  ? ingredients.take(3).join(", ")
+                  : "No ingredients";
+
+              return GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
@@ -65,12 +68,88 @@ class WishlistPage extends StatelessWidget {
                     ),
                   );
                 },
+                child: Card(
+                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(14),
+                        ),
+                        child: Image.network(
+                          imageUrl,
+                          width: 110,
+                          height: 110,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                ingredientPreview,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (_) {
+                              return AlertDialog(
+                                title: const Text("Remove Favorite"),
+                                content: const Text("정말로 즐겨찾기에서 삭제할까요?"),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text("아니요"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text("예"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
 
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () {
-                    context.read<WishlistProvider>().toggleWishlist(docId);
-                  },
+                          if (confirm == true) {
+                            context
+                                .read<WishlistProvider>()
+                                .toggleWishlist(docId);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

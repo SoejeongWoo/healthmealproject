@@ -38,6 +38,8 @@ class ProductDetailPage extends StatelessWidget {
         final name = data['name'] ?? '';
         final imageUrl = data['imageUrl'] ?? '';
         final description = data['description'] ?? '';
+        final List<String> foodOptions =
+            List<String>.from(data['foodOptions'] ?? []);
         final uid = data['uid'] ?? '';
 
         final createdAt = data['createdAt'];
@@ -51,6 +53,27 @@ class ProductDetailPage extends StatelessWidget {
 
         final myUid = FirebaseAuth.instance.currentUser!.uid;
         final isOwner = myUid == uid;
+
+        final rawTime = data['cookingTime'];
+        int cookingTime = 0;
+
+        if (rawTime is int) {
+          cookingTime = rawTime;
+        } else if (rawTime is String) {
+          cookingTime = int.tryParse(rawTime) ?? 0;
+        }
+
+        String cookingTimeText = "";
+        if (cookingTime > 0) {
+          int hour = cookingTime ~/ 60;
+          int minute = cookingTime % 60;
+
+          if (hour > 0) {
+            cookingTimeText = "$hour시간 $minute분";
+          } else {
+            cookingTimeText = "$minute분";
+          }
+        }
 
         Widget ingredientSection(String title, List<String> list) {
           if (list.isEmpty) return const SizedBox.shrink();
@@ -136,8 +159,6 @@ class ProductDetailPage extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
                 const SizedBox(height: 16),
-
-                // ❤️ 메뉴 이름 + 좋아요 + 하트
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -151,8 +172,6 @@ class ProductDetailPage extends StatelessWidget {
                           ),
                         ),
                       ),
-
-                      // ❤️ 하트
                       Consumer<WishlistProvider>(
                         builder: (context, wishlistProvider, child) {
                           final isInWishlist =
@@ -172,8 +191,6 @@ class ProductDetailPage extends StatelessWidget {
                           );
                         },
                       ),
-
-                      // ⭐ 좋아요 숫자 (StreamBuilder → 즉시 반영)
                       StreamBuilder<DocumentSnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('products')
@@ -197,16 +214,58 @@ class ProductDetailPage extends StatelessWidget {
                     ],
                   ),
                 ),
-
+                if (cookingTimeText.isNotEmpty)
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text(
+                      "⏱ 조리시간: $cookingTimeText",
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 ingredientSection("메인 재료", mainIngredients),
                 ingredientSection("서브 재료", subIngredients),
                 ingredientSection("기타 재료", otherIngredients),
-
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(description),
-                ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(description),
+                      const SizedBox(height: 15),
 
+                      // ⭐ 옵션들
+                      if (foodOptions.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: foodOptions.map((opt) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                "#$opt",
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.all(16),

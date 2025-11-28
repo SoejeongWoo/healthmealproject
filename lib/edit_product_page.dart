@@ -32,6 +32,17 @@ class _EditProductPageState extends State<EditProductPage> {
   late TextEditingController _nameController;
   late TextEditingController _descController;
 
+  final TextEditingController _hourController = TextEditingController();
+  final TextEditingController _minuteController = TextEditingController();
+  final List<String> allFoodOptions = [
+    "디저트",
+    "가볍게 먹는 식사",
+    "든든한 식사",
+    "고단백",
+  ];
+
+  List<String> selectedFoodOptions = [];
+
   late List<String> mainIngredients;
   late List<String> subIngredients;
   late List<String> otherIngredients;
@@ -47,6 +58,25 @@ class _EditProductPageState extends State<EditProductPage> {
     mainIngredients = List.from(widget.mainIngredients);
     subIngredients = List.from(widget.subIngredients);
     otherIngredients = List.from(widget.otherIngredients);
+
+    _loadExistingCookingTime();
+  }
+
+  Future<void> _loadExistingCookingTime() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('products')
+        .doc(widget.docId)
+        .get();
+
+    int totalMinutes = doc.data()?['cookingTime'] ?? 0;
+
+    int hour = totalMinutes ~/ 60;
+    int minute = totalMinutes % 60;
+
+    _hourController.text = hour.toString();
+    _minuteController.text = minute.toString();
+    selectedFoodOptions = List<String>.from(doc.data()?['foodOptions'] ?? []);
+    setState(() {});
   }
 
   Future<void> _pickImage() async {
@@ -97,6 +127,10 @@ class _EditProductPageState extends State<EditProductPage> {
       imageUrl = await ref.getDownloadURL();
     }
 
+    int hour = int.tryParse(_hourController.text) ?? 0; // ⭐
+    int minute = int.tryParse(_minuteController.text) ?? 0; // ⭐
+    int totalMinutes = hour * 60 + minute; // ⭐
+
     await FirebaseFirestore.instance
         .collection('products')
         .doc(widget.docId)
@@ -108,6 +142,8 @@ class _EditProductPageState extends State<EditProductPage> {
       'subIngredients': subIngredients,
       'otherIngredients': otherIngredients,
       'updatedAt': FieldValue.serverTimestamp(),
+      'cookingTime': totalMinutes,
+      'foodOptions': selectedFoodOptions,
     });
 
     Navigator.pop(context);
@@ -177,9 +213,56 @@ class _EditProductPageState extends State<EditProductPage> {
                     : Image.network(widget.currentImageUrl, height: 150),
               ),
               const SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: "메뉴 이름"),
+              ),
+              Card(
+                elevation: 0,
+                color: Colors.grey.shade100,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "조리 시간을 입력하시오",
+                        style: TextStyle(
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _hourController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: '시간',
+                                hintText: '예: 1',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextField(
+                              controller: _minuteController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: '분',
+                                hintText: '예: 30',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               ingredientSection("메인 재료", mainIngredients,
@@ -194,6 +277,44 @@ class _EditProductPageState extends State<EditProductPage> {
                 decoration: const InputDecoration(labelText: "설명"),
                 maxLines: 3,
               ),
+              // ⭐ 옵션 Chip 선택 UI
+              Card(
+                elevation: 0,
+                color: Colors.grey.shade100,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("음식 옵션 선택",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: allFoodOptions.map((opt) {
+                          final isSelected = selectedFoodOptions.contains(opt);
+                          return FilterChip(
+                            label: Text(opt),
+                            selected: isSelected,
+                            onSelected: (value) {
+                              setState(() {
+                                if (value) {
+                                  selectedFoodOptions.add(opt);
+                                } else {
+                                  selectedFoodOptions.remove(opt);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               ElevatedButton(
                 onPressed: _updateProduct,
                 child: const Text("저장"),

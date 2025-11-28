@@ -12,6 +12,8 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   String _query = '';
 
+  final TextEditingController _timeController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,6 +35,22 @@ class _SearchPageState extends State<SearchPage> {
               },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: TextField(
+              controller: _timeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "최대 조리 시간 (분)",
+                hintText: "예: 30 → 30분 이하의 메뉴",
+                prefixIcon: Icon(Icons.timer),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (v) {
+                setState(() {});
+              },
+            ),
+          ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream:
@@ -43,30 +61,45 @@ class _SearchPageState extends State<SearchPage> {
                 }
 
                 final docs = snapshot.data!.docs;
+
+                int? maxTime;
+                if (_timeController.text.trim().isNotEmpty) {
+                  maxTime = int.tryParse(_timeController.text.trim());
+                }
+
                 final filtered = docs.where((doc) {
-                  if (_query.isEmpty) return true;
-
                   final data = doc.data() as Map<String, dynamic>;
-                  final name = (data['name'] ?? '').toString().toLowerCase();
-                  final description =
-                      (data['description'] ?? '').toString().toLowerCase();
 
-                  final mainIngredients =
-                      List<String>.from(data['mainIngredients'] ?? []);
-                  final subIngredients =
-                      List<String>.from(data['subIngredients'] ?? []);
-                  final otherIngredients =
-                      List<String>.from(data['otherIngredients'] ?? []);
+                  if (_query.isNotEmpty) {
+                    final name = (data['name'] ?? '').toString().toLowerCase();
+                    final description =
+                        (data['description'] ?? '').toString().toLowerCase();
 
-                  final allIngredients = [
-                    ...mainIngredients,
-                    ...subIngredients,
-                    ...otherIngredients,
-                  ].join(' ').toLowerCase();
+                    final mainIngredients =
+                        List<String>.from(data['mainIngredients'] ?? []);
+                    final subIngredients =
+                        List<String>.from(data['subIngredients'] ?? []);
+                    final otherIngredients =
+                        List<String>.from(data['otherIngredients'] ?? []);
+                    final allIngredients = [
+                      ...mainIngredients,
+                      ...subIngredients,
+                      ...otherIngredients,
+                    ].join(' ').toLowerCase();
 
-                  return name.contains(_query) ||
-                      description.contains(_query) ||
-                      allIngredients.contains(_query);
+                    if (!name.contains(_query) &&
+                        !description.contains(_query) &&
+                        !allIngredients.contains(_query)) {
+                      return false;
+                    }
+                  }
+
+                  if (maxTime != null) {
+                    int cookingTime = data['cookingTime'] ?? 0;
+                    if (cookingTime > maxTime) return false;
+                  }
+
+                  return true;
                 }).toList();
 
                 if (filtered.isEmpty) {
@@ -93,6 +126,12 @@ class _SearchPageState extends State<SearchPage> {
                       ...otherIngredients,
                     ];
 
+                    int cookingTime = data['cookingTime'] ?? 0;
+                    int hour = cookingTime ~/ 60;
+                    int minute = cookingTime % 60;
+                    String timeText =
+                        hour > 0 ? "$hour시간 $minute분" : "$minute분";
+
                     return ListTile(
                       leading: imageUrl.isNotEmpty
                           ? CircleAvatar(
@@ -100,9 +139,16 @@ class _SearchPageState extends State<SearchPage> {
                             )
                           : const CircleAvatar(child: Icon(Icons.image)),
                       title: Text(name),
-                      subtitle: allIngredients.isNotEmpty
-                          ? Text(allIngredients.join(', '))
-                          : null,
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (allIngredients.isNotEmpty)
+                            Text(allIngredients.join(', ')),
+                          const SizedBox(height: 2),
+                          Text("조리 시간: $timeText",
+                              style: const TextStyle(color: Colors.grey)),
+                        ],
+                      ),
                       onTap: () {
                         Navigator.push(
                           context,
