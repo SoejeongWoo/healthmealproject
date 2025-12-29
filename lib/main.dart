@@ -17,9 +17,14 @@ import 'login_provider.dart';
 import 'DropDownProvider.dart';
 import 'signup_page.dart';
 import 'searchpage.dart';
+import 'ai_coach_page.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -43,8 +48,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 254, 178, 224),
+        ),
+        useMaterial3: true,
+      ),
       title: 'Firebase Auth & Products',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      // theme: ThemeData(primarySwatch: Colors.blue),
       home: const AuthHome(),
     );
   }
@@ -254,11 +265,11 @@ class _AuthHomeState extends State<AuthHome> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.home),
+                  icon: const Icon(Icons.smart_toy_outlined),
                   onPressed: () {
-                    Navigator.pushReplacement(
+                    Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const AuthHome()),
+                      MaterialPageRoute(builder: (_) => const AICoachPage()),
                     );
                   },
                 ),

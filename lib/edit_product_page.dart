@@ -127,9 +127,9 @@ class _EditProductPageState extends State<EditProductPage> {
       imageUrl = await ref.getDownloadURL();
     }
 
-    int hour = int.tryParse(_hourController.text) ?? 0; // ⭐
-    int minute = int.tryParse(_minuteController.text) ?? 0; // ⭐
-    int totalMinutes = hour * 60 + minute; // ⭐
+    int hour = int.tryParse(_hourController.text) ?? 0;
+    int minute = int.tryParse(_minuteController.text) ?? 0;
+    int totalMinutes = hour * 60 + minute;
 
     await FirebaseFirestore.instance
         .collection('products')
@@ -277,7 +277,6 @@ class _EditProductPageState extends State<EditProductPage> {
                 decoration: const InputDecoration(labelText: "설명"),
                 maxLines: 3,
               ),
-              // ⭐ 옵션 Chip 선택 UI
               Card(
                 elevation: 0,
                 color: Colors.grey.shade100,
@@ -314,7 +313,6 @@ class _EditProductPageState extends State<EditProductPage> {
                   ),
                 ),
               ),
-
               ElevatedButton(
                 onPressed: _updateProduct,
                 child: const Text("저장"),

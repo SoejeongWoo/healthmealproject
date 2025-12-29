@@ -53,7 +53,6 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // ⭐ 프로필 카드
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -111,10 +110,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
-                  // ⭐ 내가 쓴 글 보기 토글
                   GestureDetector(
                     onTap: () {
                       setState(() => showMyPosts = !showMyPosts);
@@ -147,9 +143,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   if (showMyPosts) _buildMyPosts(widget.user.uid),
                 ],
               ),

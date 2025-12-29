@@ -7,7 +7,6 @@ class WishlistProvider extends ChangeNotifier {
 
   List<String> get wishlist => _wishlist;
 
-  // 유저 UID 설정
   void setUser(String uid) {
     _uid = uid;
     loadWishlist();

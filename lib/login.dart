@@ -24,8 +24,6 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             const Text("Shrine 로그인", style: TextStyle(fontSize: 28)),
             const SizedBox(height: 40),
-
-            /// 🔵 Google 로그인
             ElevatedButton(
               onPressed: () async {
                 final user = await _authService.signInWithGoogle();
@@ -36,8 +34,6 @@ class _LoginPageState extends State<LoginPage> {
               child: const Text("Sign in with Google"),
             ),
             const SizedBox(height: 30),
-
-            /// 🔵 이메일 로그인 UI
             TextField(
               controller: _email,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -49,7 +45,6 @@ class _LoginPageState extends State<LoginPage> {
               obscureText: true,
             ),
             const SizedBox(height: 20),
-
             ElevatedButton(
               onPressed: () async {
                 try {
